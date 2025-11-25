@@ -1,0 +1,48 @@
+{
+  "bot-account": {
+    "username": "darksmp", 
+    "password": "",
+    "type": "mojang"
+  },
+
+  "server": {
+    "ip": "DarkSMPCZ.aternos.me", 
+    "port": 42907,   
+    "version": "1.12.1"   
+  },
+  
+  "position": {
+    "enabled": false,
+    "x": 0,
+    "y": 0,
+    "z": 0
+  },
+
+  "utils": {
+    "auto-auth": {
+      "enabled": true,
+      "password": "afkbot123"
+    },
+
+    "anti-afk": {
+      "enabled": true,
+      "sneak": true
+    },
+
+    "chat-messages": {
+      "enabled": true,
+      "repeat": true,
+      "repeat-delay": 60,
+
+      "messages": [
+        "jsem afk",
+        "mně si nevšímejte",
+        "já tady nejsem"
+      ]
+    },
+
+    "chat-log": true,
+    "auto-reconnect": true,
+    "auto-recconect-delay": 5000
+  }
+}
