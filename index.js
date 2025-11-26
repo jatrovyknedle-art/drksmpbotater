@@ -32,53 +32,84 @@ function createBot() {
    bot.settings.colorsEnabled = false;
 
    let pendingPromise = Promise.resolve();
+  
+function sendRegister(password) {
+    return waitForAuthResponse("register", password);
+}
 
-   function sendRegister(password) {
-      return new Promise((resolve, reject) => {
-         bot.chat(`/register ${password} ${password}`);
-         console.log(`[Auth] Sent /register command.`);
+function sendLogin(password) {
+    return waitForAuthResponse("login", password);
+}
+  
+function waitForAuthResponse(type, password) {
+    return new Promise((resolve, reject) => {
 
-         bot.once('chat', (username, message) => {
-            console.log(`[ChatLog] <${username}> ${message}`); // Log all chat messages
+        let timeout = setTimeout(() => {
+            reject(`[Auth] No response from server after sending /${type}.`);
+        }, 7000);
 
-            // Check for various possible responses
-            if (message.includes('successfully registered')) {
-               console.log('[INFO] Registration confirmed.');
-               resolve();
-            } else if (message.includes('already registered')) {
-               console.log('[INFO] Bot was already registered.');
-               resolve(); // Resolve if already registered
-            } else if (message.includes('Invalid command')) {
-               reject(`Registration failed: Invalid command. Message: "${message}"`);
-            } else {
-               reject(`Registration failed: unexpected message "${message}".`);
+        const listener = (jsonMsg) => {
+            const msg = jsonMsg.toString().toLowerCase();
+            console.log(`[AuthLog] ${msg}`);
+
+            // Detect success
+            if (
+                msg.includes("successfully logged in") ||
+                msg.includes("login successful") ||
+                msg.includes("authenticated") ||
+                msg.includes("welcome") ||
+                msg.includes("logged in")
+            ) {
+                clearTimeout(timeout);
+                bot.removeListener("message", listener);
+                console.log(`[Auth] ${type} success detected.`);
+                resolve();
             }
-         });
-      });
-   }
 
-   function sendLogin(password) {
-      return new Promise((resolve, reject) => {
-         bot.chat(`/login ${password}`);
-         console.log(`[Auth] Sent /login command.`);
-
-         bot.once('chat', (username, message) => {
-            console.log(`[ChatLog] <${username}> ${message}`); // Log all chat messages
-
-            if (message.includes('successfully logged in')) {
-               console.log('[INFO] Login successful.');
-               resolve();
-            } else if (message.includes('Invalid password')) {
-               reject(`Login failed: Invalid password. Message: "${message}"`);
-            } else if (message.includes('not registered')) {
-               reject(`Login failed: Not registered. Message: "${message}"`);
-            } else {
-               reject(`Login failed: unexpected message "${message}".`);
+            // Detect already registered
+            if (
+                msg.includes("already registered") ||
+                msg.includes("already logged in")
+            ) {
+                clearTimeout(timeout);
+                bot.removeListener("message", listener);
+                console.log(`[Auth] ${type} already registered/logged in.`);
+                resolve();
             }
-         });
-      });
-   }
 
+            // Detect errors
+            if (
+                msg.includes("invalid password") ||
+                msg.includes("wrong password") ||
+                msg.includes("incorrect password")
+            ) {
+                clearTimeout(timeout);
+                bot.removeListener("message", listener);
+                reject(`[Auth] Wrong password.`);
+            }
+
+            if (
+                msg.includes("not registered") ||
+                msg.includes("please register")
+            ) {
+                clearTimeout(timeout);
+                bot.removeListener("message", listener);
+                reject(`[Auth] Account is not registered.`);
+            }
+        };
+
+        bot.on("message", listener);
+
+        // Send the command
+        if (type === "register") {
+            bot.chat(`/register ${password} ${password}`);
+            console.log("[Auth] Sent /register command.");
+        } else {
+            bot.chat(`/login ${password}`);
+            console.log("[Auth] Sent /login command.");
+        }
+    });
+}
    bot.once('spawn', () => {
       console.log('\x1b[33m[AfkBot] Bot joined the server', '\x1b[0m');
 
