@@ -6,8 +6,8 @@
   },
 
   "server": {
-    "ip": "DarkSMPCZ.aternos.me", 
-    "port": 42907,   
+    "ip": "darkSMPSKCZ.aternos.me", 
+    "port": 26801,   
     "version": "1.12.1"   
   },
   
