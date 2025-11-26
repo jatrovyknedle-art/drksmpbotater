@@ -32,6 +32,48 @@ function createBot() {
    bot.settings.colorsEnabled = false;
 
    let pendingPromise = Promise.resolve();
+
+function detectAuthType() {
+    return new Promise((resolve, reject) => {
+        let timeout = setTimeout(() => {
+            reject("Auth detection timed out. No login/register prompt received.");
+        }, 7000);
+
+        const listener = (jsonMsg) => {
+            const msg = jsonMsg.toString().toLowerCase();
+            console.log("[AuthDetect]", msg);
+
+            // REGISTER prompts
+            if (
+                msg.includes("/register") ||
+                msg.includes("please register") ||
+                msg.includes("you are not registered") ||
+                msg.includes("prosím zaregistruj se") ||
+                msg.includes("zaregistruj se")
+            ) {
+                clearTimeout(timeout);
+                bot.removeListener("message", listener);
+                resolve("register");
+            }
+
+            // LOGIN prompts
+            if (
+                msg.includes("/login") ||
+                msg.includes("please login") ||
+                msg.includes("you need to login") ||
+                msg.includes("prosím přihlaš se") ||
+                msg.includes("přihlas se")
+            ) {
+                clearTimeout(timeout);
+                bot.removeListener("message", listener);
+                resolve("login");
+            }
+        };
+
+        bot.on("message", listener);
+    });
+}
+
   
 function sendRegister(password) {
     return waitForAuthResponse("register", password);
@@ -113,15 +155,30 @@ function waitForAuthResponse(type, password) {
    bot.once('spawn', () => {
       console.log('\x1b[33m[AfkBot] Bot joined the server', '\x1b[0m');
 
-      if (config.utils['auto-auth'].enabled) {
-         console.log('[INFO] Started auto-auth module');
+if (config.utils['auto-auth'].enabled) {
+          console.log('[INFO] Started auto-auth module');
 
-         const password = config.utils['auto-auth'].password;
+          const password = config.utils['auto-auth'].password;
 
-         pendingPromise = pendingPromise
-            .then(() => sendRegister(password))
-            .then(() => sendLogin(password))
-            .catch(error => console.error('[ERROR]', error));
+          pendingPromise = pendingPromise
+              .then(async () => {
+                  console.log('[Auth] Waiting for auth prompt...');
+
+                  const authType = await detectAuthType();
+                  console.log(`[Auth] Server requires: ${authType}`);
+
+                  if (authType === "register") {
+                      await sendRegister(password);
+                      return sendLogin(password); // login po registraci
+                  }
+
+                  if (authType === "login") {
+                      return sendLogin(password);
+                  }
+
+                  throw new Error("Auth type could not be detected.");
+              })
+              .catch(error => console.error('[ERROR]', error));
       }
 
       if (config.utils['chat-messages'].enabled) {
