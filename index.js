@@ -181,6 +181,12 @@ if (config.utils['auto-auth'].enabled) {
               .catch(error => console.error('[ERROR]', error));
       }
 
+      bot.on("message", (jsonMsg, position, sender) => {
+          const msg = jsonMsg.toString();
+          console.log(`[Chat] ${msg}`);
+      });
+
+     
       if (config.utils['chat-messages'].enabled) {
          console.log('[INFO] Started chat-messages module');
          const messages = config.utils['chat-messages']['messages'];
